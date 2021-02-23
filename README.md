@@ -1,7 +1,7 @@
 # My plan
 - ~~API "/users"~~
 - ~~Run in Docker~~
-- Midware + logs
+- ~~Midware + logs~~
 - Unit tests
 - DB + CRUD
 - Integration tests
