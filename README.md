@@ -2,7 +2,7 @@
 - ~~API "/users"~~
 - ~~Run in Docker~~
 - ~~Midware + logs~~
-- Unit tests
+- ~~Unit tests~~
 - DB + CRUD
 - Integration tests
 - Authentication 

@@ -1,8 +1,8 @@
-package bal
+package user
 
 // User ....
 type User struct {
-	ID   string `json:"id" gorm:"primary_key"`
+	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -12,4 +12,3 @@ type CreateUser struct {
 	Password        string `json:"password" binding:"required"`
 	PasswordConfirm string `json:"password_confirm" binding:"eqfield=Password"`
 }
-
