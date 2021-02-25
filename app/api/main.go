@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/dimfeld/httptreemux"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // The database driver in use.
 	"github.com/spf13/viper"
@@ -35,24 +36,31 @@ func main() {
 	}
 	defer func() {
 		log.Printf("main: Database Stopping : %s", db.DriverName())
-		db.Close()
+		//	db.Close()
 	}()
 
-	mux := http.NewServeMux()
+
+	router := httptreemux.NewContextMux()
+
 	urep := user.NewRepository(db)
 	uh := handlers.NewUserHandler(urep)
-	mux.HandleFunc("/users", uh.GetUsers)
+	router.GET("/users/:id", uh.GetUserByID)
+	router.PUT("/users/:id", uh.UpdateUser)
+	router.DELETE("/users/:id", uh.DeleteUser)
+	router.GET("/users", uh.GetUsers)
+	router.POST("/users", uh.CreateUser)
 
 	loggMiddle := middle.LoggMiddle(logg)
-	configuredMux := loggMiddle(mux)
+	cnfgrdRouter := loggMiddle(router)
 
 	api := http.Server{
 		Addr:    serverAddress,
-		Handler: configuredMux,
+		Handler: cnfgrdRouter,
 	}
 
 	log.Printf("API is running on %v", serverAddress)
 	if err := api.ListenAndServe(); err != nil {
+		log.Fatal(err)
 	}
 
 }

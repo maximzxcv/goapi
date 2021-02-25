@@ -3,6 +3,8 @@
 - ~~Run in Docker~~
 - ~~Midware + logs~~
 - ~~Unit tests~~
-- DB + CRUD
+- ~~DB + CRUD~~
+- Error handling
 - Integration tests
-- Authentication 
+- Authentication
+- Client 

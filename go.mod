@@ -3,12 +3,13 @@ module goapi
 go 1.15
 
 require (
+	github.com/dimfeld/httptreemux v5.0.1+incompatible
 	github.com/gin-gonic/gin v1.6.3 // indirect
 	github.com/go-delve/delve v1.6.0 // indirect
 	github.com/go-playground/validator v9.31.0+incompatible // indirect
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
-	github.com/google/uuid v1.2.0 // indirect
+	github.com/google/uuid v1.2.0
 	github.com/jackc/pgx v3.6.2+incompatible // indirect
 	github.com/jmoiron/sqlx v1.3.1
 	github.com/json-iterator/go v1.1.10 // indirect
@@ -19,7 +20,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/ugorji/go v1.2.4 // indirect
-	golang.org/x/crypto v0.0.0-20210218145215-b8e89b74b9df // indirect
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/sys v0.0.0-20210218085108-9555bcde0c6a // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
