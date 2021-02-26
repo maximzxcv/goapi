@@ -39,16 +39,15 @@ func main() {
 		//	db.Close()
 	}()
 
-
 	router := httptreemux.NewContextMux()
 
 	urep := user.NewRepository(db)
 	uh := handlers.NewUserHandler(urep)
-	router.GET("/users/:id", uh.GetUserByID)
-	router.PUT("/users/:id", uh.UpdateUser)
-	router.DELETE("/users/:id", uh.DeleteUser)
-	router.GET("/users", uh.GetUsers)
-	router.POST("/users", uh.CreateUser)
+	router.Handler(http.MethodGet, "/users/:id", appHandler(uh.GetUserByID))
+	router.Handler(http.MethodPut, "/users/:id", appHandler(uh.UpdateUser))
+	router.Handler(http.MethodDelete, "/users/:id", appHandler(uh.DeleteUser))
+	router.Handler(http.MethodGet, "/users", appHandler(uh.GetUsers))
+	router.Handler(http.MethodPost, "/users", appHandler(uh.CreateUser))
 
 	loggMiddle := middle.LoggMiddle(logg)
 	cnfgrdRouter := loggMiddle(router)
@@ -75,4 +74,14 @@ func open() (*sqlx.DB, error) {
 		conf("host"), conf("port"), conf("user"), conf("pass"), conf("dbname"))
 	fmt.Println(psqlInfo)
 	return sqlx.Open("postgres", psqlInfo)
+}
+
+// AppHandler .....
+type appHandler func(http.ResponseWriter, *http.Request) *handlers.ErrorResponse
+
+func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if erresp := fn(w, r); erresp != nil {
+		log.Printf("%+v", erresp)
+		w.WriteHeader(erresp.Code)
+	}
 }

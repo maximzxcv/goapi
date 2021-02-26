@@ -4,7 +4,7 @@
 - ~~Midware + logs~~
 - ~~Unit tests~~
 - ~~DB + CRUD~~
-- Error handling
+- ~~Error handling~~
 - Integration tests
 - Authentication
 - Client 

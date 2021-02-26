@@ -3,10 +3,11 @@ package mid
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
-//  DbConfig ....
+// DbConfig ....
 type DbConfig struct {
 	Name     string `json:"database.host"`
 	Port     string `json:"database.port"`
@@ -27,12 +28,12 @@ func LoadConfig(path string) (config DbConfig, err error) {
 	if err != nil {
 		d := err.Error()
 		fmt.Println(d)
-		return DbConfig{}, err
+		return DbConfig{}, errors.WithStack(err)
 	}
 
 	err = viper.Unmarshal(&config)
 	if err != nil {
-		return DbConfig{}, err
+		return DbConfig{}, errors.WithStack(err)
 	}
 	return DbConfig{}, nil
 }
