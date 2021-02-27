@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"goapi/app/api/handlers"
 	"goapi/app/api/middle"
-	"goapi/bal"
 	"goapi/business/data/user"
 	"goapi/business/mid"
 	"log"
@@ -22,7 +21,6 @@ const (
 )
 
 func main() {
-	logg := bal.NewLogg()
 	config, err := mid.LoadConfig(".")
 	if err != nil {
 		log.Print(err)
@@ -49,7 +47,7 @@ func main() {
 	router.Handler(http.MethodGet, "/users", appHandler(uh.GetUsers))
 	router.Handler(http.MethodPost, "/users", appHandler(uh.CreateUser))
 
-	loggMiddle := middle.LoggMiddle(logg)
+	loggMiddle := middle.LoggMiddle()
 	cnfgrdRouter := loggMiddle(router)
 
 	api := http.Server{

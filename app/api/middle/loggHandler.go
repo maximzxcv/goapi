@@ -1,7 +1,7 @@
 package middle
 
 import (
-	"goapi/bal"
+	"log"
 	"net/http"
 	"time"
 )
@@ -21,24 +21,18 @@ func (rw *loggResponseWrite) WriteHeader(code int) {
 }
 
 // LoggMiddle   ....
-func LoggMiddle(logg *bal.Logg) func(http.Handler) http.Handler {
+func LoggMiddle() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
-					//	logg.Error(err)
 				}
 			}()
 			start := time.Now()
 			loggrw := wrapResponseWriter(w)
 			next.ServeHTTP(loggrw, r)
-			logg.Debug(
-				"status", loggrw.status,
-				"method", r.Method,
-				"path", r.URL.EscapedPath(),
-				"duration", time.Since(start),
-			)
+			log.Println("->", loggrw.status, r.Method, r.URL.EscapedPath(), ":", time.Since(start))
 		}
 
 		return http.HandlerFunc(fn)
