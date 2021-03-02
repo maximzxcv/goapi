@@ -5,6 +5,7 @@
 - ~~Unit tests~~
 - ~~DB + CRUD~~
 - ~~Error handling~~
-- Integration tests
+- ~~Integration tests~~
 - Authentication
+- Add more entities
 - Client 
