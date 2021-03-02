@@ -10,6 +10,7 @@ require (
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/containerd/continuity v0.0.0-20210208174643-50096c924a4e // indirect
 	github.com/dimfeld/httptreemux v5.0.1+incompatible
+	github.com/dimiro1/darwin v0.0.0-20191008194338-370f81775d3b
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/gin-gonic/gin v1.6.3 // indirect
@@ -40,4 +41,5 @@ require (
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
 replace golang.org/x/sys => golang.org/x/sys v0.0.0-20190830141801-acfa387b8d69

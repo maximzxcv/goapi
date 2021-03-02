@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"goapi/app/api/handlers"
 	"goapi/app/api/middle"
 	"goapi/business/data/user"
@@ -13,7 +12,6 @@ import (
 	"github.com/dimfeld/httptreemux"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // The database driver in use.
-	"github.com/spf13/viper"
 )
 
 const (
@@ -21,13 +19,14 @@ const (
 )
 
 func main() {
-	config, err := mid.LoadConfig(".")
-	if err != nil {
-		log.Print(err)
+	if err := mid.LoadConfig("."); err != nil {
+		log.Fatalf("Could configfile: %s", err)
 	}
-	log.Print(config)
+	dbConfig, _ := mid.GetDbConfig()
+	log.Printf("config.json is loaded")
+
 	//	log.Println("main: Initializing database support")
-	db, err := open()
+	db, err := open(dbConfig)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -62,16 +61,10 @@ func main() {
 
 }
 
-func open() (*sqlx.DB, error) {
+//TODO : duplicated code
+func open(dbConfig *mid.DbConfig) (*sqlx.DB, error) {
 
-	conf := func(key string) string {
-		return viper.GetString(`database.` + key)
-	}
-
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		conf("host"), conf("port"), conf("user"), conf("pass"), conf("dbname"))
-	fmt.Println(psqlInfo)
-	return sqlx.Open("postgres", psqlInfo)
+	return sqlx.Open("postgres", dbConfig.ConnectinString())
 }
 
 // AppHandler .....

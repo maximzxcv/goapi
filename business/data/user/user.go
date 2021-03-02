@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -9,7 +10,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const passSolt = "sdl8t7498ugpwe8u"
+//const passSolt = "sdl8t7498ugpwe8u"
+var (
+	NotExist = errors.New("not exist")
+)
 
 // UserRepository ....
 type UserRepository struct {
@@ -42,9 +46,12 @@ func (urep UserRepository) Query(ctx context.Context) ([]User, error) {
 
 // QueryByID .....
 func (urep UserRepository) QueryByID(ctx context.Context, uid string) (User, error) {
-	const q = `ELECT * FROM users AS u WHERE u.id=$1`
+	const q = `SELECT * FROM users AS u WHERE u.id=$1`
 	var usr User
 	if err := urep.db.GetContext(ctx, &usr, q, uid); err != nil {
+		if err == sql.ErrNoRows {
+			return usr, NotExist
+		}
 		return usr, errors.Wrap(err, "QueryByID:db")
 	}
 	return usr, nil
@@ -74,17 +81,17 @@ func (urep UserRepository) Create(ctx context.Context, cusr CreateUser) (User, e
 	}
 
 	if _, err := urep.db.ExecContext(ctx, q, usr.ID, usr.Name, hash); err != nil {
-		return User{}, errors.Wrap(err, "Delete:db")
+		return User{}, errors.Wrap(err, "UserRepository.Create")
 	}
 	return usr, nil
 }
 
 // Update ....
 func (urep UserRepository) Update(ctx context.Context, uid string, uusr UpdateUser) (User, error) {
-	const q = `UPDATE users AS u SET
-	 	u.name=$2, 
-	 	u.password = $3
-	 WHERE u.id=$1`
+	const q = `UPDATE users SET
+	 	name=$2, 
+	 	password = $3
+	 WHERE id=$1`
 
 	usr, err := urep.QueryByID(ctx, uid)
 	if err != nil {
