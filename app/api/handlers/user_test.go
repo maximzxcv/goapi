@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"goapi/app/api/middle"
 	"goapi/business/data/user"
 	"goapi/ttesting"
 	"log"
@@ -27,7 +28,7 @@ func TestUser(t *testing.T) {
 	t.Cleanup(tunit.Teardown)
 
 	utests := userTests{
-		app: Api(tunit.Db),
+		app: Api(tunit.Db, middle.LoggMiddle()),
 	}
 
 	t.Log("User CRUD functionality")

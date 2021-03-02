@@ -117,3 +117,22 @@ func (urep UserRepository) Update(ctx context.Context, uid string, uusr UpdateUs
 
 	return usr, nil
 }
+
+// CheckPassword validates if password is correct for user
+func (urep UserRepository) CheckPassword(ctx context.Context, username string, password string) error {
+	const q = `SELECT * FROM users AS u WHERE u.name=$1`
+	var usr User
+	if err := urep.db.GetContext(ctx, &usr, q, username); err != nil {
+		if err == sql.ErrNoRows {
+			return NotExist
+		}
+		return errors.Wrap(err, "QueryByID:db")
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(password))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
