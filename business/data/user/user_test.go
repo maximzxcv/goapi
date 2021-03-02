@@ -53,7 +53,7 @@ func TestUser(t *testing.T) {
 
 		testGoalLog = "Update: Should be able to update user by Id."
 		var uusr = UpdateUser{
-			CreateUser: curs,
+			Name: curs.Name,
 		}
 		uusr.Name = "updatedName"
 		usr, err = rep.Update(ctx, fusr.ID, uusr)

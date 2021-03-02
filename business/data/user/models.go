@@ -16,5 +16,7 @@ type CreateUser struct {
 
 // UpdateUser ....
 type UpdateUser struct {
-	CreateUser
+	Name            string `json:"name" binding:"required"`
+	Password        string `json:"password" binding:"required"`
+	PasswordConfirm string `json:"password_confirm" binding:"eqfield=Password"`
 }

@@ -2,14 +2,11 @@ package main
 
 import (
 	"goapi/app/api/handlers"
-	"goapi/app/api/middle"
-	"goapi/business/data/user"
 	"goapi/business/mid"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/dimfeld/httptreemux"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // The database driver in use.
 )
@@ -36,22 +33,22 @@ func main() {
 		//	db.Close()
 	}()
 
-	router := httptreemux.NewContextMux()
+	// router := httptreemux.NewContextMux()
 
-	urep := user.NewRepository(db)
-	uh := handlers.NewUserHandler(urep)
-	router.Handler(http.MethodGet, "/users/:id", appHandler(uh.GetUserByID))
-	router.Handler(http.MethodPut, "/users/:id", appHandler(uh.UpdateUser))
-	router.Handler(http.MethodDelete, "/users/:id", appHandler(uh.DeleteUser))
-	router.Handler(http.MethodGet, "/users", appHandler(uh.GetUsers))
-	router.Handler(http.MethodPost, "/users", appHandler(uh.CreateUser))
+	// urep := user.NewRepository(db)
+	// uh := handlers.NewUserHandler(urep)
+	// router.Handler(http.MethodGet, "/users/:id", appHandler(uh.GetUserByID))
+	// router.Handler(http.MethodPut, "/users/:id", appHandler(uh.UpdateUser))
+	// router.Handler(http.MethodDelete, "/users/:id", appHandler(uh.DeleteUser))
+	// router.Handler(http.MethodGet, "/users", appHandler(uh.GetUsers))
+	// router.Handler(http.MethodPost, "/users", appHandler(uh.CreateUser))
 
-	loggMiddle := middle.LoggMiddle()
-	cnfgrdRouter := loggMiddle(router)
+	// loggMiddle := middle.LoggMiddle()
+	// cnfgrdRouter := loggMiddle(router)
 
 	api := http.Server{
 		Addr:    serverAddress,
-		Handler: cnfgrdRouter,
+		Handler: handlers.Api(db),
 	}
 
 	log.Printf("API is running on %v", serverAddress)
@@ -67,12 +64,12 @@ func open(dbConfig *mid.DbConfig) (*sqlx.DB, error) {
 	return sqlx.Open("postgres", dbConfig.ConnectinString())
 }
 
-// AppHandler .....
-type appHandler func(http.ResponseWriter, *http.Request) *handlers.ErrorResponse
+// // AppHandler .....
+// type appHandler func(http.ResponseWriter, *http.Request) *handlers.ErrorResponse
 
-func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if erresp := fn(w, r); erresp != nil {
-		log.Printf("%+v", erresp)
-		w.WriteHeader(erresp.Code)
-	}
-}
+// func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// 	if erresp := fn(w, r); erresp != nil {
+// 		log.Printf("%+v", erresp)
+// 		w.WriteHeader(erresp.Code)
+// 	}
+// }

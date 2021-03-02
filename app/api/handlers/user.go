@@ -33,8 +33,14 @@ func (uh *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) *ErrorRe
 	ctx := r.Context()
 
 	uuu, err := uh.urep.Query(ctx)
+
 	if err != nil {
-		return &ErrorResponse{err, 500}
+		switch errors.Cause(err) {
+		case user.NotExist:
+			return &ErrorResponse{err, http.StatusNotFound}
+		default:
+			return &ErrorResponse{err, 500}
+		}
 	}
 
 	out, err := json.Marshal(uuu)
@@ -56,9 +62,13 @@ func (uh *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) *Erro
 
 	usr, err := uh.urep.QueryByID(ctx, params["id"])
 	if err != nil {
-		return &ErrorResponse{err, 500}
+		switch errors.Cause(err) {
+		case user.NotExist:
+			return &ErrorResponse{err, http.StatusNotFound}
+		default:
+			return &ErrorResponse{err, 500}
+		}
 	}
-
 	out, err := json.Marshal(usr)
 	if err != nil {
 		return &ErrorResponse{err, 500}
@@ -89,7 +99,7 @@ func (uh *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) *Error
 		return &ErrorResponse{err, 500}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, string(out))
 
 	return nil
@@ -128,10 +138,15 @@ func (uh *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) *Error
 	params := httptreemux.ContextParams(ctx)
 
 	if err := uh.urep.Delete(ctx, params["id"]); err != nil {
-		return &ErrorResponse{err, 500}
+		switch errors.Cause(err) {
+		case user.NotExist:
+			return &ErrorResponse{err, http.StatusNotFound}
+		default:
+			return &ErrorResponse{err, 500}
+		}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 
 	return nil
 }
