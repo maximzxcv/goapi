@@ -34,8 +34,10 @@ type loggm struct {
 func (lm *loggm) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	loggrw := wrapResponseWriter(w)
-	lm.handler.ServeHTTP(w, r)
+	username := r.Context().Value("Username")
 
-	log.Println("->", loggrw.status, r.Method, r.URL.EscapedPath(), ":", time.Since(start))
+	lm.handler.ServeHTTP(loggrw, r)
+
+	log.Println("->", username, loggrw.status, r.Method, r.URL.EscapedPath(), ":", time.Since(start))
 
 }

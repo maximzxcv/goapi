@@ -6,6 +6,5 @@
 - ~~DB + CRUD~~
 - ~~Error handling~~
 - ~~Integration tests~~
-- Authentication
+- ~~JWT Authentication~~
 - Add more entities
-- Client 

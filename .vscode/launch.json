@@ -17,8 +17,8 @@
             "name": "Testing",
             "type": "go",
             "request": "launch",
-            "mode": "auto",
-            "program": "${workspaceFolder}/business/data/user", 
+            "mode": "test",
+            "program": "${workspaceFolder}/app/api/handlers/", 
             "env": {},
             "args": []
         }

@@ -36,7 +36,7 @@ func main() {
 
 	api := http.Server{
 		Addr:    serverAddress,
-		Handler: handlers.Api(db, middle.LoggMiddle()),
+		Handler: handlers.API(db, middle.LoggMiddle()),
 	}
 
 	log.Printf("API is running on %v", serverAddress)

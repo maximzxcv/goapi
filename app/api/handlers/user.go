@@ -4,26 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"goapi/business/data/user"
+	"goapi/foundation/dbase"
 	"net/http"
 
 	"github.com/dimfeld/httptreemux"
 	"github.com/pkg/errors"
 )
 
-// ErrorResponse ...
-type ErrorResponse struct {
-	error
-	Code int
-}
-
 // UserHandler ....
 type UserHandler struct {
-	urep user.UserRepository
+	urep *user.UserRepository
 }
 
 //NewUserHandler ...
-func NewUserHandler(urep user.UserRepository) UserHandler {
-	return UserHandler{
+func NewUserHandler(urep *user.UserRepository) *UserHandler {
+	return &UserHandler{
 		urep: urep,
 	}
 }
@@ -36,7 +31,7 @@ func (uh *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) *ErrorRe
 
 	if err != nil {
 		switch errors.Cause(err) {
-		case user.NotExist:
+		case dbase.ErrNotExist:
 			return &ErrorResponse{err, http.StatusNotFound}
 		default:
 			return &ErrorResponse{err, 500}
@@ -63,7 +58,7 @@ func (uh *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) *Erro
 	usr, err := uh.urep.QueryByID(ctx, params["id"])
 	if err != nil {
 		switch errors.Cause(err) {
-		case user.NotExist:
+		case dbase.ErrNotExist:
 			return &ErrorResponse{err, http.StatusNotFound}
 		default:
 			return &ErrorResponse{err, 500}
@@ -91,7 +86,12 @@ func (uh *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) *Error
 
 	usr, err := uh.urep.Create(ctx, nusr)
 	if err != nil {
-		return &ErrorResponse{err, 500}
+		switch errors.Cause(err) {
+		case dbase.ErrAlreadyExist:
+			return &ErrorResponse{err, http.StatusConflict}
+		default:
+			return &ErrorResponse{err, 500}
+		}
 	}
 
 	out, err := json.Marshal(usr)
@@ -117,7 +117,12 @@ func (uh *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) *Error
 
 	usr, err := uh.urep.Update(ctx, params["id"], uusr)
 	if err != nil {
-		return &ErrorResponse{err, 500}
+		switch errors.Cause(err) {
+		case dbase.ErrAlreadyExist:
+			return &ErrorResponse{err, http.StatusConflict}
+		default:
+			return &ErrorResponse{err, 500}
+		}
 	}
 
 	out, err := json.Marshal(usr)
@@ -139,7 +144,7 @@ func (uh *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) *Error
 
 	if err := uh.urep.Delete(ctx, params["id"]); err != nil {
 		switch errors.Cause(err) {
-		case user.NotExist:
+		case dbase.ErrNotExist:
 			return &ErrorResponse{err, http.StatusNotFound}
 		default:
 			return &ErrorResponse{err, 500}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"goapi/app/api/middle"
+	"goapi/business/auth"
 	"goapi/business/data/user"
 	"goapi/ttesting"
 	"log"
@@ -14,12 +15,11 @@ import (
 )
 
 type userTests struct {
-	app http.Handler
+	app     http.Handler
+	authStr string
 }
 
 func TestUser(t *testing.T) {
-	t.Log("User CRUD functionality")
-
 	tunit, err := ttesting.NewUnit()
 	if err != nil {
 		log.Fatalf("Failed to run test: %s", err)
@@ -28,7 +28,11 @@ func TestUser(t *testing.T) {
 	t.Cleanup(tunit.Teardown)
 
 	utests := userTests{
-		app: Api(tunit.Db, middle.LoggMiddle()),
+		app: API(tunit.Db, middle.LoggMiddle()),
+	}
+
+	if err := utests.setAuthStr(); err != nil {
+		log.Fatalf("Failed to set authorization: %s", err)
 	}
 
 	t.Log("User CRUD functionality")
@@ -39,7 +43,6 @@ func TestUser(t *testing.T) {
 		utests.deleteUsers204(t, usr)
 		utests.getUsersList200(t)
 	}
-
 }
 
 // create user
@@ -57,6 +60,7 @@ func (utests *userTests) postUser201(t *testing.T) user.User {
 	}
 
 	r := httptest.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(body))
+	r.Header.Add("Authorization", utests.authStr)
 	w := httptest.NewRecorder()
 	utests.app.ServeHTTP(w, r)
 
@@ -83,6 +87,7 @@ func (utests *userTests) getUser200(t *testing.T, usr user.User) {
 	testGoalLog := "getUsers200: Should be able to get user by id."
 
 	r := httptest.NewRequest(http.MethodGet, "/users/"+usr.ID, nil)
+	r.Header.Add("Authorization", utests.authStr)
 	w := httptest.NewRecorder()
 	utests.app.ServeHTTP(w, r)
 
@@ -117,6 +122,7 @@ func (utests *userTests) putUsers200(t *testing.T, usr user.User) {
 	}
 
 	r := httptest.NewRequest(http.MethodPut, "/users/"+usr.ID, bytes.NewBuffer(body))
+	r.Header.Add("Authorization", utests.authStr)
 	w := httptest.NewRecorder()
 
 	utests.app.ServeHTTP(w, r)
@@ -128,6 +134,7 @@ func (utests *userTests) putUsers200(t *testing.T, usr user.User) {
 
 	// get it from service to check results
 	r = httptest.NewRequest(http.MethodGet, "/users/"+usr.ID, nil)
+	r.Header.Add("Authorization", utests.authStr)
 	w = httptest.NewRecorder()
 
 	utests.app.ServeHTTP(w, r)
@@ -149,6 +156,7 @@ func (utests *userTests) deleteUsers204(t *testing.T, usr user.User) {
 	testGoalLog := "putUsers204: Should be able to delete user by id."
 
 	r := httptest.NewRequest(http.MethodDelete, "/users/"+usr.ID, nil)
+	r.Header.Add("Authorization", utests.authStr)
 	w := httptest.NewRecorder()
 
 	utests.app.ServeHTTP(w, r)
@@ -160,6 +168,7 @@ func (utests *userTests) deleteUsers204(t *testing.T, usr user.User) {
 
 	// get it from service to check results
 	r = httptest.NewRequest(http.MethodGet, "/users/"+usr.ID, nil)
+	r.Header.Add("Authorization", utests.authStr)
 	w = httptest.NewRecorder()
 
 	utests.app.ServeHTTP(w, r)
@@ -177,7 +186,7 @@ func (utests *userTests) deleteUsers204(t *testing.T, usr user.User) {
 func (utests *userTests) getUsersList200(t *testing.T) {
 	testGoalLog := "getUsers200: Should be able to get LIST of users by id."
 
-	uamount := 6
+	uamount := 7
 	cusr := user.CreateUser{
 		Name:            "HttpUserName",
 		Password:        "testpassword",
@@ -192,11 +201,13 @@ func (utests *userTests) getUsersList200(t *testing.T) {
 		}
 
 		r := httptest.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(body))
+		r.Header.Add("Authorization", utests.authStr)
 		w := httptest.NewRecorder()
 		utests.app.ServeHTTP(w, r)
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/users", nil)
+	r.Header.Add("Authorization", utests.authStr)
 	w := httptest.NewRecorder()
 	utests.app.ServeHTTP(w, r)
 
@@ -209,9 +220,46 @@ func (utests *userTests) getUsersList200(t *testing.T) {
 		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
 	case err != nil:
 		t.Error(ttesting.ErrorLog(testGoalLog, err))
-	case len(rusrs) != uamount:
-		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", uamount, len(rusrs)))
+	case len(rusrs) != uamount+1:
+		t.Error(ttesting.FailedLog(testGoalLog, "Amount of users", uamount+1, len(rusrs)))
 	default:
 		t.Log(ttesting.SuccessLog(testGoalLog))
 	}
+}
+
+func (usets *userTests) setAuthStr() error {
+	signup := auth.Signup{
+		Username: "UserTester",
+		Password: "testpassword",
+	}
+	body, err := json.Marshal(&signup)
+	if err != nil {
+		return err
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/singup", bytes.NewBuffer(body))
+	w := httptest.NewRecorder()
+	usets.app.ServeHTTP(w, r)
+
+	login := auth.Login{
+		Username: signup.Username,
+		Password: signup.Password,
+	}
+	body, err = json.Marshal(&login)
+	if err != nil {
+		return err
+	}
+
+	r = httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
+	w = httptest.NewRecorder()
+	usets.app.ServeHTTP(w, r)
+
+	var access auth.Access
+	err = json.NewDecoder(w.Body).Decode(&access)
+	if err != nil {
+		return err
+	}
+
+	usets.authStr = "Bearer " + access.Token
+	return nil
 }

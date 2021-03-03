@@ -17,7 +17,8 @@ var (
 				id uuid NOT NULL,
 				name character varying COLLATE pg_catalog."default" NOT NULL,
 				password character varying COLLATE pg_catalog."default",
-				CONSTRAINT users_pkey PRIMARY KEY (id)
+				CONSTRAINT users_pkey PRIMARY KEY (id),
+				CONSTRAINT users_name_key UNIQUE (name)
 			)`,
 		},
 		// {

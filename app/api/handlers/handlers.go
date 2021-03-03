@@ -10,39 +10,45 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// Api configures URL handling
-func Api(db *sqlx.DB, m ...middle.Middleware) http.Handler {
-	//router := httptreemux.NewContextMux()
+// ErrorResponse ...
+type ErrorResponse struct {
+	error
+	Code int
+}
 
+// API configures URL handling
+func API(db *sqlx.DB, mw ...middle.Middleware) http.Handler {
 	router := apiMux{
-		httptreemux.NewContextMux(),
+		ContextMux: httptreemux.NewContextMux(),
+		mw:         mw,
 	}
 
 	urep := user.NewRepository(db)
+
 	uh := NewUserHandler(urep)
-
 	router.MHandler(http.MethodGet, "/users/:id", appHandler(uh.GetUserByID), middle.AuthMiddle())
-
 	router.MHandler(http.MethodPut, "/users/:id", appHandler(uh.UpdateUser), middle.AuthMiddle())
 	router.MHandler(http.MethodDelete, "/users/:id", appHandler(uh.DeleteUser), middle.AuthMiddle())
 	router.MHandler(http.MethodGet, "/users", appHandler(uh.GetUsers), middle.AuthMiddle())
 	router.MHandler(http.MethodPost, "/users", appHandler(uh.CreateUser), middle.AuthMiddle())
 
-	router.Handler(http.MethodPost, "/login", appHandler(uh.GetUserByID))
-	router.Handler(http.MethodPost, "/logout", appHandler(uh.GetUserByID))
+	ah := NewAuthHandler(urep)
+	router.Handler(http.MethodPost, "/singup", appHandler(ah.Singup))
+	router.Handler(http.MethodPost, "/login", appHandler(ah.Login))
+	router.Handler(http.MethodGet, "/logout", appHandler(ah.Logout))
 
-	h := wrapMiddleware(m, router)
-
-	return h
+	return router
 }
 
 type apiMux struct {
 	*httptreemux.ContextMux
+	mw []middle.Middleware
 }
 
 // MHandler allows to run middleware
 func (cg *apiMux) MHandler(method, path string, handler http.Handler, m ...middle.Middleware) {
-	h := wrapMiddleware(m, handler)
+	h := wrapMiddleware(cg.mw, handler)
+	h = wrapMiddleware(m, h)
 	cg.Handler(method, path, h)
 }
 

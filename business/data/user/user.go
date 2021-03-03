@@ -3,16 +3,13 @@ package user
 import (
 	"context"
 	"database/sql"
+	"goapi/business/auth"
+	"goapi/foundation/dbase"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
-)
-
-//const passSolt = "sdl8t7498ugpwe8u"
-var (
-	NotExist = errors.New("not exist")
 )
 
 // UserRepository ....
@@ -22,8 +19,8 @@ type UserRepository struct {
 }
 
 // NewRepository ...
-func NewRepository(db *sqlx.DB) UserRepository {
-	return UserRepository{
+func NewRepository(db *sqlx.DB) *UserRepository {
+	return &UserRepository{
 		//	log: log,
 		db: db,
 	}
@@ -31,9 +28,6 @@ func NewRepository(db *sqlx.DB) UserRepository {
 
 // Query ...
 func (urep UserRepository) Query(ctx context.Context) ([]User, error) {
-	// ctx, span := trace.SpanFromContext(ctx).Tracer().Start(ctx, "business.data.user.query")
-	// defer span.End()
-
 	const q = `SELECT * FROM users`
 
 	usrs := []User{}
@@ -50,7 +44,7 @@ func (urep UserRepository) QueryByID(ctx context.Context, uid string) (User, err
 	var usr User
 	if err := urep.db.GetContext(ctx, &usr, q, uid); err != nil {
 		if err == sql.ErrNoRows {
-			return usr, NotExist
+			return usr, dbase.ErrNotExist
 		}
 		return usr, errors.Wrap(err, "QueryByID:db")
 	}
@@ -81,6 +75,9 @@ func (urep UserRepository) Create(ctx context.Context, cusr CreateUser) (User, e
 	}
 
 	if _, err := urep.db.ExecContext(ctx, q, usr.ID, usr.Name, hash); err != nil {
+		if dbErr, ok := dbase.IsDbError(err); ok {
+			return User{}, dbErr
+		}
 		return User{}, errors.Wrap(err, "UserRepository.Create")
 	}
 	return usr, nil
@@ -112,26 +109,28 @@ func (urep UserRepository) Update(ctx context.Context, uid string, uusr UpdateUs
 	}
 
 	if _, err := urep.db.ExecContext(ctx, q, usr.ID, usr.Name, hash); err != nil {
+		if dbErr, ok := dbase.IsDbError(err); ok {
+			return User{}, dbErr
+		}
 		return User{}, errors.Wrap(err, "Update:db")
 	}
 
 	return usr, nil
 }
 
-// CheckPassword validates if password is correct for user
-func (urep UserRepository) CheckPassword(ctx context.Context, username string, password string) error {
+// CheckAuth validates if password is correct for user
+func (urep UserRepository) CheckAuth(ctx context.Context, username string, password string) error {
 	const q = `SELECT * FROM users AS u WHERE u.name=$1`
 	var usr User
 	if err := urep.db.GetContext(ctx, &usr, q, username); err != nil {
 		if err == sql.ErrNoRows {
-			return NotExist
+			return auth.ErrNotAuthorised
 		}
 		return errors.Wrap(err, "QueryByID:db")
 	}
 
-	err := bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(password))
-	if err != nil {
-		return err
+	if err := bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(password)); err != nil {
+		return auth.ErrNotAuthorised
 	}
 
 	return nil

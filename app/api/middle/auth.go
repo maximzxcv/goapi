@@ -1,8 +1,12 @@
 package middle
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
+
+	"goapi/business/auth"
 )
 
 type Middleware func(http.Handler) http.Handler
@@ -20,8 +24,15 @@ type authm struct {
 
 func (lm *authm) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	lm.handler.ServeHTTP(w, r)
+	authStr := r.Header.Get("authorization")
 
-	log.Println("Auth")
+	if claims, err := auth.ValidateAccess(authStr); err != nil {
+		log.Print(err)
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprintf(w, err.Error())
+	} else {
+		ctx := context.WithValue(r.Context(), "Username", claims.Username)
+		lm.handler.ServeHTTP(w, r.WithContext(ctx))
+	}
 
 }
