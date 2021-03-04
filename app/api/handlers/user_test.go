@@ -1,17 +1,13 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
 	"goapi/app/api/middle"
 	"goapi/business/apiclient"
 	"goapi/business/auth"
 	"goapi/business/data/user"
 	"goapi/ttesting"
-	"io"
 	"log"
 	"net/http"
-	"net/http/httptest"
 	"strconv"
 	"testing"
 )
@@ -53,10 +49,21 @@ func TestUser(t *testing.T) {
 	{
 		usr := utests.postUser201(t)
 		utests.getUser200(t, usr)
-		utests.putUsers200(t, usr)
-		utests.deleteUsers204(t, usr)
+		utests.putUsers200(t, usr.ID)
+		utests.deleteUsers204(t, usr.ID)
 		utests.getUsersList200(t)
 	}
+}
+
+func (utests *userTests) singupClient(u string, p string) error {
+	signup := auth.Signup{
+		Username: u,
+		Password: p,
+	}
+
+	_, err := utests.client.UnauthorizedCall(http.MethodPost, "/singup", &signup, nil)
+
+	return err
 }
 
 // create user
@@ -68,169 +75,107 @@ func (utests *userTests) postUser201(t *testing.T) user.User {
 		Password:        "testpassword",
 		PasswordConfirm: "testpassword",
 	}
-	var usr user.User
+	var outusr user.User
 
-	httpCode, err := utests.client.Post("/users", &cusr, &usr)
+	httpCode, err := utests.client.Post("/users", &cusr, &outusr)
 
 	if err != nil {
 		t.Error(ttesting.ErrorLog(testGoalLog, err))
 	}
 
-	estatus := http.StatusCreated
+	expected := http.StatusCreated
 	switch {
-	case httpCode != estatus:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, httpCode))
+	case httpCode != expected:
+		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
 	case err != nil:
 		t.Error(ttesting.ErrorLog(testGoalLog, err))
-	case usr.Name != cusr.Name:
-		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", cusr.Name, usr.Name))
+	case outusr.Name != cusr.Name:
+		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", cusr.Name, outusr.Name))
 	default:
 		t.Log(ttesting.SuccessLog(testGoalLog))
 	}
 
-	return usr
+	return outusr
 }
-
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// PostAndForget
-// PostForResult
-func dcd(r io.Reader, n interface{}) error {
-	return json.NewDecoder(r).Decode(n)
-}
-
-// // create user
-// func (utests *userTests) postUser201(t *testing.T) user.User {
-// 	testGoalLog := "postUser201: Should be able to create user."
-
-// 	cusr := user.CreateUser{
-// 		Name:            "HttpUserName",
-// 		Password:        "testpassword",
-// 		PasswordConfirm: "testpassword",
-// 	}
-// 	body, err := json.Marshal(&cusr)
-// 	if err != nil {
-// 		t.Error(ttesting.ErrorLog(testGoalLog, err))
-// 	}
-
-// 	r := httptest.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(body))
-// 	r.Header.Add("Authorization", utests.authStr)
-// 	w := httptest.NewRecorder()
-// 	utests.app.ServeHTTP(w, r)
-
-// 	var rusr user.User
-// 	// err = json.NewDecoder(w.Body).Decode(&rusr)
-// 	err = dcd(w.Body, &rusr)
-
-// 	estatus := http.StatusCreated
-// 	switch {
-// 	case w.Code != estatus:
-// 		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
-// 	case err != nil:
-// 		t.Error(ttesting.ErrorLog(testGoalLog, err))
-// 	case rusr.Name != cusr.Name:
-// 		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", cusr.Name, rusr.Name))
-// 	default:
-// 		t.Log(ttesting.SuccessLog(testGoalLog))
-// 	}
-
-// 	return rusr
-// }
 
 // get single user by id
 func (utests *userTests) getUser200(t *testing.T, usr user.User) {
 	testGoalLog := "getUsers200: Should be able to get user by id."
 
-	r := httptest.NewRequest(http.MethodGet, "/users/"+usr.ID, nil)
-	//	r.Header.Add("Authorization", utests.authStr)
-	w := httptest.NewRecorder()
-	utests.app.ServeHTTP(w, r)
+	var outusr user.User
 
-	var rusr user.User
-	err := json.NewDecoder(w.Body).Decode(&rusr)
+	httpCode, err := utests.client.Get("/users/"+usr.ID, &outusr)
 
-	estatus := http.StatusOK
+	if err != nil {
+		t.Error(ttesting.ErrorLog(testGoalLog, err))
+	}
+
+	expected := http.StatusOK
 	switch {
-	case w.Code != estatus:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+	case httpCode != expected:
+		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
 	case err != nil:
 		t.Error(ttesting.ErrorLog(testGoalLog, err))
-	case rusr.Name != usr.Name:
-		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", usr.Name, rusr.Name))
+	case outusr.Name != usr.Name:
+		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", usr.Name, outusr.Name))
 	default:
 		t.Log(ttesting.SuccessLog(testGoalLog))
 	}
 }
 
 // update user by id
-func (utests *userTests) putUsers200(t *testing.T, usr user.User) {
+func (utests *userTests) putUsers200(t *testing.T, uid string) {
 	testGoalLog := "putUsers204: Should be able to update user by id."
 
-	uusr := user.UpdateUser{
+	inusr := user.UpdateUser{
 		Name:            "NewName",
 		Password:        "NewPass",
 		PasswordConfirm: "NewPass",
 	}
-	body, err := json.Marshal(&uusr)
+
+	httpCode, err := utests.client.Put("/users/"+uid, &inusr, nil)
 	if err != nil {
 		t.Error(ttesting.ErrorLog(testGoalLog, err))
 	}
 
-	r := httptest.NewRequest(http.MethodPut, "/users/"+usr.ID, bytes.NewBuffer(body))
-	//	r.Header.Add("Authorization", utests.authStr)
-	w := httptest.NewRecorder()
-
-	utests.app.ServeHTTP(w, r)
-
-	estatus := http.StatusOK
-	if w.Code != estatus {
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+	expected := http.StatusOK
+	if httpCode != expected {
+		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
 	}
 
-	// get it from service to check results
-	r = httptest.NewRequest(http.MethodGet, "/users/"+usr.ID, nil)
-	//	r.Header.Add("Authorization", utests.authStr)
-	w = httptest.NewRecorder()
-
-	utests.app.ServeHTTP(w, r)
-	var rusr user.User
-	err = json.NewDecoder(w.Body).Decode(&rusr)
+	var outusr user.User
+	httpCode, err = utests.client.Get("/users/"+uid, &outusr)
 
 	switch {
 	case err != nil:
 		t.Error(ttesting.ErrorLog(testGoalLog, err))
-	case uusr.Name != rusr.Name:
-		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", uusr.Name, rusr.Name))
+	case inusr.Name != outusr.Name:
+		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", inusr.Name, outusr.Name))
 	default:
 		t.Log(ttesting.SuccessLog(testGoalLog))
 	}
 }
 
 // delete user by id
-func (utests *userTests) deleteUsers204(t *testing.T, usr user.User) {
-	testGoalLog := "putUsers204: Should be able to delete user by id."
+func (utests *userTests) deleteUsers204(t *testing.T, uid string) {
+	testGoalLog := "deleteUsers204: Should be able to delete user by id."
 
-	r := httptest.NewRequest(http.MethodDelete, "/users/"+usr.ID, nil)
-	//	r.Header.Add("Authorization", utests.authStr)
-	w := httptest.NewRecorder()
-
-	utests.app.ServeHTTP(w, r)
-
-	estatus := http.StatusNoContent
-	if w.Code != estatus {
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+	httpCode, err := utests.client.Delete("/users/" + uid)
+	if err != nil {
+		t.Error(ttesting.ErrorLog(testGoalLog, err))
 	}
 
-	// get it from service to check results
-	r = httptest.NewRequest(http.MethodGet, "/users/"+usr.ID, nil)
-	//	r.Header.Add("Authorization", utests.authStr)
-	w = httptest.NewRecorder()
+	expected := http.StatusNoContent
+	if httpCode != expected {
+		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
+	}
 
-	utests.app.ServeHTTP(w, r)
-	estatus = http.StatusNotFound
+	httpCode, _ = utests.client.Get("/users/"+uid, nil)
 
+	expected = http.StatusNotFound
 	switch {
-	case w.Code != estatus:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+	case httpCode != expected:
+		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
 	default:
 		t.Log(ttesting.SuccessLog(testGoalLog))
 	}
@@ -249,73 +194,25 @@ func (utests *userTests) getUsersList200(t *testing.T) {
 	// populate more users
 	for i := 0; i < uamount; i++ {
 		cusr.Name = cusr.Name + strconv.Itoa(i)
-		body, err := json.Marshal(&cusr)
+
+		_, err := utests.client.Post("/users", &cusr, nil)
 		if err != nil {
 			t.Error(ttesting.ErrorLog(testGoalLog, err))
 		}
-
-		r := httptest.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(body))
-		//	r.Header.Add("Authorization", utests.authStr)
-		w := httptest.NewRecorder()
-		utests.app.ServeHTTP(w, r)
 	}
 
-	r := httptest.NewRequest(http.MethodGet, "/users", nil)
-	//	r.Header.Add("Authorization", utests.authStr)
-	w := httptest.NewRecorder()
-	utests.app.ServeHTTP(w, r)
+	var outusrs []user.User
+	httpCode, err := utests.client.Get("/users", &outusrs)
 
-	var rusrs []user.User
-	err := json.NewDecoder(w.Body).Decode(&rusrs)
-
-	estatus := http.StatusOK
+	expected := http.StatusOK
 	switch {
-	case w.Code != estatus:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+	case httpCode != expected:
+		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
 	case err != nil:
 		t.Error(ttesting.ErrorLog(testGoalLog, err))
-	case len(rusrs) != uamount+1:
-		t.Error(ttesting.FailedLog(testGoalLog, "Amount of users", uamount+1, len(rusrs)))
+	case len(outusrs) != uamount+1:
+		t.Error(ttesting.FailedLog(testGoalLog, "Amount of users", uamount+1, len(outusrs)))
 	default:
 		t.Log(ttesting.SuccessLog(testGoalLog))
 	}
-}
-
-func (usets *userTests) singupClient(u string, p string) error {
-	signup := auth.Signup{
-		Username: u,
-		Password: p,
-	}
-
-	_, err := usets.client.UnauthorizedCall(http.MethodPost, "/singup", &signup, nil)
-
-	return err
-
-	//body, err := json.Marshal(&signup)
-
-	// r := httptest.NewRequest(http.MethodPost, "/singup", bytes.NewBuffer(body))
-	// w := httptest.NewRecorder()
-	// usets.app.ServeHTTP(w, r)
-
-	// login := auth.Login{
-	// 	Username: signup.Username,
-	// 	Password: signup.Password,
-	// }
-	// body, err = json.Marshal(&login)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// r = httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
-	// w = httptest.NewRecorder()
-	// usets.app.ServeHTTP(w, r)
-
-	// var access auth.Access
-	// err = json.NewDecoder(w.Body).Decode(&access)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// usets.authStr = "Bearer " + access.Token
-	// return nil
 }
