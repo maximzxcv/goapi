@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"goapi/foundation/dbase"
 	"goapi/ttesting"
 	"log"
 	"strconv"
@@ -82,7 +83,7 @@ func TestUser(t *testing.T) {
 			t.Error(ttesting.ErrorLog(testGoalLog, err))
 		}
 		_, err = rep.QueryByID(ctx, fusr.ID)
-		if errors.Cause(err) != NotExist {
+		if errors.Cause(err) != dbase.ErrNotExist {
 			t.Error(ttesting.ErrorLog(testGoalLog, err))
 		} else {
 			t.Logf(ttesting.SuccessLog(testGoalLog))

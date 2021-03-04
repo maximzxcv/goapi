@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"goapi/app/api/middle"
+	"goapi/business/apiclient"
 	"goapi/business/auth"
 	"goapi/business/data/user"
 	"goapi/ttesting"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -15,8 +17,8 @@ import (
 )
 
 type userTests struct {
-	app     http.Handler
-	authStr string
+	app    http.Handler
+	client apiclient.Client
 }
 
 func TestUser(t *testing.T) {
@@ -27,11 +29,23 @@ func TestUser(t *testing.T) {
 
 	t.Cleanup(tunit.Teardown)
 
-	utests := userTests{
-		app: API(tunit.Db, middle.LoggMiddle()),
+	app := API(tunit.Db, middle.LoggMiddle())
+	client, err := apiclient.BuildClient(app)
+
+	if err != nil {
+		log.Fatalf("Failed to run test: %s", err)
 	}
 
-	if err := utests.setAuthStr(); err != nil {
+	utests := userTests{
+		app,
+		client,
+	}
+
+	if err := utests.singupClient("UserTesterAccount", "testpassword"); err != nil {
+		log.Fatalf("Failed to set authorization: %s", err)
+	}
+
+	if err := utests.client.Authorize("UserTesterAccount", "testpassword"); err != nil {
 		log.Fatalf("Failed to set authorization: %s", err)
 	}
 
@@ -54,40 +68,80 @@ func (utests *userTests) postUser201(t *testing.T) user.User {
 		Password:        "testpassword",
 		PasswordConfirm: "testpassword",
 	}
-	body, err := json.Marshal(&cusr)
+	var usr user.User
+
+	httpCode, err := utests.client.Post("/users", &cusr, &usr)
+
 	if err != nil {
 		t.Error(ttesting.ErrorLog(testGoalLog, err))
 	}
 
-	r := httptest.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(body))
-	r.Header.Add("Authorization", utests.authStr)
-	w := httptest.NewRecorder()
-	utests.app.ServeHTTP(w, r)
-
-	var rusr user.User
-	err = json.NewDecoder(w.Body).Decode(&rusr)
-
 	estatus := http.StatusCreated
 	switch {
-	case w.Code != estatus:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+	case httpCode != estatus:
+		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, httpCode))
 	case err != nil:
 		t.Error(ttesting.ErrorLog(testGoalLog, err))
-	case rusr.Name != cusr.Name:
-		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", cusr.Name, rusr.Name))
+	case usr.Name != cusr.Name:
+		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", cusr.Name, usr.Name))
 	default:
 		t.Log(ttesting.SuccessLog(testGoalLog))
 	}
 
-	return rusr
+	return usr
 }
+
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// PostAndForget
+// PostForResult
+func dcd(r io.Reader, n interface{}) error {
+	return json.NewDecoder(r).Decode(n)
+}
+
+// // create user
+// func (utests *userTests) postUser201(t *testing.T) user.User {
+// 	testGoalLog := "postUser201: Should be able to create user."
+
+// 	cusr := user.CreateUser{
+// 		Name:            "HttpUserName",
+// 		Password:        "testpassword",
+// 		PasswordConfirm: "testpassword",
+// 	}
+// 	body, err := json.Marshal(&cusr)
+// 	if err != nil {
+// 		t.Error(ttesting.ErrorLog(testGoalLog, err))
+// 	}
+
+// 	r := httptest.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(body))
+// 	r.Header.Add("Authorization", utests.authStr)
+// 	w := httptest.NewRecorder()
+// 	utests.app.ServeHTTP(w, r)
+
+// 	var rusr user.User
+// 	// err = json.NewDecoder(w.Body).Decode(&rusr)
+// 	err = dcd(w.Body, &rusr)
+
+// 	estatus := http.StatusCreated
+// 	switch {
+// 	case w.Code != estatus:
+// 		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+// 	case err != nil:
+// 		t.Error(ttesting.ErrorLog(testGoalLog, err))
+// 	case rusr.Name != cusr.Name:
+// 		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", cusr.Name, rusr.Name))
+// 	default:
+// 		t.Log(ttesting.SuccessLog(testGoalLog))
+// 	}
+
+// 	return rusr
+// }
 
 // get single user by id
 func (utests *userTests) getUser200(t *testing.T, usr user.User) {
 	testGoalLog := "getUsers200: Should be able to get user by id."
 
 	r := httptest.NewRequest(http.MethodGet, "/users/"+usr.ID, nil)
-	r.Header.Add("Authorization", utests.authStr)
+	//	r.Header.Add("Authorization", utests.authStr)
 	w := httptest.NewRecorder()
 	utests.app.ServeHTTP(w, r)
 
@@ -122,7 +176,7 @@ func (utests *userTests) putUsers200(t *testing.T, usr user.User) {
 	}
 
 	r := httptest.NewRequest(http.MethodPut, "/users/"+usr.ID, bytes.NewBuffer(body))
-	r.Header.Add("Authorization", utests.authStr)
+	//	r.Header.Add("Authorization", utests.authStr)
 	w := httptest.NewRecorder()
 
 	utests.app.ServeHTTP(w, r)
@@ -134,7 +188,7 @@ func (utests *userTests) putUsers200(t *testing.T, usr user.User) {
 
 	// get it from service to check results
 	r = httptest.NewRequest(http.MethodGet, "/users/"+usr.ID, nil)
-	r.Header.Add("Authorization", utests.authStr)
+	//	r.Header.Add("Authorization", utests.authStr)
 	w = httptest.NewRecorder()
 
 	utests.app.ServeHTTP(w, r)
@@ -156,7 +210,7 @@ func (utests *userTests) deleteUsers204(t *testing.T, usr user.User) {
 	testGoalLog := "putUsers204: Should be able to delete user by id."
 
 	r := httptest.NewRequest(http.MethodDelete, "/users/"+usr.ID, nil)
-	r.Header.Add("Authorization", utests.authStr)
+	//	r.Header.Add("Authorization", utests.authStr)
 	w := httptest.NewRecorder()
 
 	utests.app.ServeHTTP(w, r)
@@ -168,7 +222,7 @@ func (utests *userTests) deleteUsers204(t *testing.T, usr user.User) {
 
 	// get it from service to check results
 	r = httptest.NewRequest(http.MethodGet, "/users/"+usr.ID, nil)
-	r.Header.Add("Authorization", utests.authStr)
+	//	r.Header.Add("Authorization", utests.authStr)
 	w = httptest.NewRecorder()
 
 	utests.app.ServeHTTP(w, r)
@@ -201,13 +255,13 @@ func (utests *userTests) getUsersList200(t *testing.T) {
 		}
 
 		r := httptest.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(body))
-		r.Header.Add("Authorization", utests.authStr)
+		//	r.Header.Add("Authorization", utests.authStr)
 		w := httptest.NewRecorder()
 		utests.app.ServeHTTP(w, r)
 	}
 
 	r := httptest.NewRequest(http.MethodGet, "/users", nil)
-	r.Header.Add("Authorization", utests.authStr)
+	//	r.Header.Add("Authorization", utests.authStr)
 	w := httptest.NewRecorder()
 	utests.app.ServeHTTP(w, r)
 
@@ -227,39 +281,41 @@ func (utests *userTests) getUsersList200(t *testing.T) {
 	}
 }
 
-func (usets *userTests) setAuthStr() error {
+func (usets *userTests) singupClient(u string, p string) error {
 	signup := auth.Signup{
-		Username: "UserTester",
-		Password: "testpassword",
-	}
-	body, err := json.Marshal(&signup)
-	if err != nil {
-		return err
+		Username: u,
+		Password: p,
 	}
 
-	r := httptest.NewRequest(http.MethodPost, "/singup", bytes.NewBuffer(body))
-	w := httptest.NewRecorder()
-	usets.app.ServeHTTP(w, r)
+	_, err := usets.client.UnauthorizedCall(http.MethodPost, "/singup", &signup, nil)
 
-	login := auth.Login{
-		Username: signup.Username,
-		Password: signup.Password,
-	}
-	body, err = json.Marshal(&login)
-	if err != nil {
-		return err
-	}
+	return err
 
-	r = httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
-	w = httptest.NewRecorder()
-	usets.app.ServeHTTP(w, r)
+	//body, err := json.Marshal(&signup)
 
-	var access auth.Access
-	err = json.NewDecoder(w.Body).Decode(&access)
-	if err != nil {
-		return err
-	}
+	// r := httptest.NewRequest(http.MethodPost, "/singup", bytes.NewBuffer(body))
+	// w := httptest.NewRecorder()
+	// usets.app.ServeHTTP(w, r)
 
-	usets.authStr = "Bearer " + access.Token
-	return nil
+	// login := auth.Login{
+	// 	Username: signup.Username,
+	// 	Password: signup.Password,
+	// }
+	// body, err = json.Marshal(&login)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// r = httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
+	// w = httptest.NewRecorder()
+	// usets.app.ServeHTTP(w, r)
+
+	// var access auth.Access
+	// err = json.NewDecoder(w.Body).Decode(&access)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// usets.authStr = "Bearer " + access.Token
+	// return nil
 }
