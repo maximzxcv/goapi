@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"goapi/app/api/middle"
 	"goapi/business/apiclient"
 	"goapi/business/auth"
@@ -8,7 +9,7 @@ import (
 	"goapi/ttesting"
 	"log"
 	"net/http"
-	"strconv"
+	"sync"
 	"testing"
 )
 
@@ -185,21 +186,33 @@ func (utests *userTests) deleteUsers204(t *testing.T, uid string) {
 func (utests *userTests) getUsersList200(t *testing.T) {
 	testGoalLog := "getUsers200: Should be able to get LIST of users by id."
 
-	uamount := 7
-	cusr := user.CreateUser{
-		Name:            "HttpUserName",
-		Password:        "testpassword",
-		PasswordConfirm: "testpassword",
-	}
+	uamount := 22
+
+	var wg sync.WaitGroup
+	c := make(chan string, 1)
+
 	// populate more users
 	for i := 0; i < uamount; i++ {
-		cusr.Name = cusr.Name + strconv.Itoa(i)
+		wg.Add(1)
+		c <- fmt.Sprintf("name_%d", i)
+		go func() {
 
-		_, err := utests.client.Post("/users", &cusr, nil)
-		if err != nil {
-			t.Error(ttesting.ErrorLog(testGoalLog, err))
-		}
+			cusr := user.CreateUser{
+				Name:            <-c,
+				Password:        "testpassword",
+				PasswordConfirm: "testpassword",
+			}
+
+			_, err := utests.client.Post("/users", cusr, nil)
+			if err != nil {
+				t.Errorf("concur: %v", err)
+			}
+			wg.Done()
+		}()
 	}
+
+	wg.Wait()
+	close(c)
 
 	var outusrs []user.User
 	httpCode, err := utests.client.Get("/users", &outusrs)

@@ -88,7 +88,7 @@ func (uh *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) *Error
 	if err != nil {
 		switch errors.Cause(err) {
 		case dbase.ErrAlreadyExist:
-			return &ErrorResponse{err, http.StatusConflict}
+			return &ErrorResponse{errors.WithMessage(err, "duplication name: "+nusr.Name), http.StatusConflict}
 		default:
 			return &ErrorResponse{err, 500}
 		}
