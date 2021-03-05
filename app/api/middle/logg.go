@@ -36,6 +36,10 @@ func (lm *loggm) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	loggrw := wrapResponseWriter(w)
 	username := r.Context().Value("Username")
 
+	if username == nil {
+		username = "-unauth-"
+	}
+
 	lm.handler.ServeHTTP(loggrw, r)
 
 	log.Println("->", username, loggrw.status, r.Method, r.URL.EscapedPath(), ":", time.Since(start))

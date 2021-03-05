@@ -33,9 +33,9 @@ func API(db *sqlx.DB, mw ...middle.Middleware) http.Handler {
 	router.MHandler(http.MethodPost, "/users", appHandler(uh.CreateUser), middle.AuthMiddle())
 
 	ah := NewAuthHandler(urep)
-	router.Handler(http.MethodPost, "/singup", appHandler(ah.Singup))
-	router.Handler(http.MethodPost, "/login", appHandler(ah.Login))
-	router.Handler(http.MethodGet, "/logout", appHandler(ah.Logout))
+	router.MHandler(http.MethodPost, "/singup", appHandler(ah.Singup), nil)
+	router.MHandler(http.MethodPost, "/login", appHandler(ah.Login), nil)
+	router.MHandler(http.MethodGet, "/logout", appHandler(ah.Logout), nil)
 
 	return router
 }

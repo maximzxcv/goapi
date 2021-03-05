@@ -7,4 +7,5 @@
 - ~~Error handling~~
 - ~~Integration tests~~
 - ~~JWT Authentication~~
+- Async calls using goroutings
 - Add more entities

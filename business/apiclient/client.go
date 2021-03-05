@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"goapi/business/auth"
-	"io"
 	"net/http"
 	"net/http/httptest"
 
@@ -28,112 +27,71 @@ func BuildClient(api http.Handler) (Client, error) {
 }
 
 // Post ....
-func (client *Client) Post(target string, input interface{}, output interface{}) (int, error) {
-	body, err := json.Marshal(&input)
-	if err != nil {
-		return 0, errors.WithStack(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, target, bytes.NewBuffer(body))
-	r.Header.Add("Authorization", client.authStr)
-	w := httptest.NewRecorder()
-	client.api.ServeHTTP(w, r)
-
-	if output == nil {
-		return w.Code, nil
-	}
-
-	// set output
-	return w.Code, decode(w.Body, output)
+func (client *Client) Post(target string, in interface{}, out interface{}) (int, error) {
+	return client.call(http.MethodPost, target, true, in, out)
 }
 
 // Get ....
-func (client *Client) Get(target string, output interface{}) (int, error) {
-	r := httptest.NewRequest(http.MethodGet, target, nil)
-	r.Header.Add("Authorization", client.authStr)
-	w := httptest.NewRecorder()
-	client.api.ServeHTTP(w, r)
-
-	if output == nil {
-		return w.Code, nil
-	}
-
-	// set output
-	return w.Code, decode(w.Body, output)
+func (client *Client) Get(target string, out interface{}) (int, error) {
+	return client.call(http.MethodGet, target, true, nil, out)
 }
 
 // Put ....
-func (client *Client) Put(target string, input interface{}, output interface{}) (int, error) {
-	body, err := json.Marshal(&input)
-	if err != nil {
-		return 0, errors.WithStack(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPut, target, bytes.NewBuffer(body))
-	r.Header.Add("Authorization", client.authStr)
-	w := httptest.NewRecorder()
-	client.api.ServeHTTP(w, r)
-
-	if output == nil {
-		return w.Code, nil
-	}
-
-	// set output
-	return w.Code, decode(w.Body, output)
+func (client *Client) Put(target string, in interface{}, out interface{}) (int, error) {
+	return client.call(http.MethodPut, target, true, in, out)
 }
 
 // Delete ....
 func (client *Client) Delete(target string) (int, error) {
-	r := httptest.NewRequest(http.MethodDelete, target, nil)
-	r.Header.Add("Authorization", client.authStr)
-	w := httptest.NewRecorder()
-	client.api.ServeHTTP(w, r)
-
-	return w.Code, nil
+	return client.call(http.MethodDelete, target, true, nil, nil)
 }
 
-func (client *Client) UnauthorizedCall(method, target string, input interface{}, output interface{}) (int, error) {
-	body, err := json.Marshal(&input)
-	if err != nil {
-		return 0, errors.WithStack(err)
-	}
-
-	r := httptest.NewRequest(http.MethodPost, target, bytes.NewBuffer(body))
-	w := httptest.NewRecorder()
-	client.api.ServeHTTP(w, r)
-
-	if output == nil {
-		return w.Code, nil
-	}
-
-	// set output
-	return w.Code, decode(w.Body, output)
+// UnauthorizedCall ...
+func (client *Client) UnauthorizedCall(method, target string, in interface{}, out interface{}) (int, error) {
+	return client.call(method, target, false, in, out)
 }
 
-func decode(r io.Reader, n interface{}) error {
-	return json.NewDecoder(r).Decode(&n)
-}
-
-func (client *Client) Authorize(username string, password string) error {
+// Login user to use client
+func (client *Client) Login(username string, password string) error {
 	login := auth.Login{
 		Username: username,
 		Password: password,
 	}
-	body, err := json.Marshal(&login)
-	if err != nil {
-		return err
-	}
-
-	r := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
-	w := httptest.NewRecorder()
-	client.api.ServeHTTP(w, r)
 
 	var access auth.Access
-	err = json.NewDecoder(w.Body).Decode(&access)
+	_, err := client.call(http.MethodPost, "/login", false, &login, &access)
 	if err != nil {
 		return err
 	}
 
 	client.authStr = "Bearer " + access.Token
+
 	return nil
+}
+
+func (client *Client) call(method, target string, isAuth bool, in interface{}, out interface{}) (int, error) {
+	r := &http.Request{}
+	if in == nil {
+		r = httptest.NewRequest(method, target, nil)
+	} else {
+		body, err := json.Marshal(&in)
+		if err != nil {
+			return 0, errors.WithStack(err)
+		}
+		r = httptest.NewRequest(method, target, bytes.NewBuffer(body))
+	}
+	if isAuth {
+		r.Header.Add("Authorization", client.authStr)
+	}
+	w := httptest.NewRecorder()
+	client.api.ServeHTTP(w, r)
+
+	if out == nil {
+		return w.Code, nil
+	}
+
+	err := json.NewDecoder(w.Body).Decode(&out)
+	defer r.Body.Close()
+
+	return w.Code, err
 }

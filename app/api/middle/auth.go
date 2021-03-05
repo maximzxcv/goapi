@@ -23,9 +23,8 @@ type authm struct {
 }
 
 func (lm *authm) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
 	authStr := r.Header.Get("authorization")
-
+	
 	if claims, err := auth.ValidateAccess(authStr); err != nil {
 		log.Print(err)
 		w.WriteHeader(http.StatusUnauthorized)
@@ -34,5 +33,4 @@ func (lm *authm) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), "Username", claims.Username)
 		lm.handler.ServeHTTP(w, r.WithContext(ctx))
 	}
-
 }

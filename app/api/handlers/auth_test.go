@@ -48,7 +48,7 @@ func (atests *authTests) postSingup201(t *testing.T) *auth.Signup {
 	testGoalLog := "postSingup201: Should return status:204"
 
 	signup := auth.Signup{
-		Username: "NewUserName",
+		Username: "authTesterAccount",
 		Password: "testpassword",
 	}
 	body, err := json.Marshal(&signup)

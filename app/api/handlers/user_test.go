@@ -37,12 +37,12 @@ func TestUser(t *testing.T) {
 		client,
 	}
 
-	if err := utests.singupClient("UserTesterAccount", "testpassword"); err != nil {
-		log.Fatalf("Failed to set authorization: %s", err)
+	if err := utests.singupClient("userTesterAccount", "testpassword"); err != nil {
+		log.Fatalf("Failed to singup: %s", err)
 	}
 
-	if err := utests.client.Authorize("UserTesterAccount", "testpassword"); err != nil {
-		log.Fatalf("Failed to set authorization: %s", err)
+	if err := utests.client.Login("userTesterAccount", "testpassword"); err != nil {
+		log.Fatalf("Failed to set authorize: %s", err)
 	}
 
 	t.Log("User CRUD functionality")
