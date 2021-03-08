@@ -24,13 +24,14 @@ type authm struct {
 
 func (lm *authm) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	authStr := r.Header.Get("authorization")
-	
+
 	if claims, err := auth.ValidateAccess(authStr); err != nil {
 		log.Print(err)
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprintf(w, err.Error())
 	} else {
 		ctx := context.WithValue(r.Context(), "Username", claims.Username)
+		ctx = context.WithValue(ctx, "UserId", claims.UserId)
 		lm.handler.ServeHTTP(w, r.WithContext(ctx))
 	}
 }

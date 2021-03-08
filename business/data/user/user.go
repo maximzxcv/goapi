@@ -14,14 +14,12 @@ import (
 
 // UserRepository ....
 type UserRepository struct {
-	//log
 	db *sqlx.DB
 }
 
 // NewRepository ...
 func NewRepository(db *sqlx.DB) *UserRepository {
 	return &UserRepository{
-		//	log: log,
 		db: db,
 	}
 }
@@ -119,19 +117,19 @@ func (urep UserRepository) Update(ctx context.Context, uid string, uusr UpdateUs
 }
 
 // CheckAuth validates if password is correct for user
-func (urep UserRepository) CheckAuth(ctx context.Context, username string, password string) error {
+func (urep UserRepository) CheckAuth(ctx context.Context, username string, password string) (User, error) {
 	const q = `SELECT * FROM users AS u WHERE u.name=$1`
 	var usr User
 	if err := urep.db.GetContext(ctx, &usr, q, username); err != nil {
 		if err == sql.ErrNoRows {
-			return auth.ErrNotAuthorised
+			return usr, auth.ErrNotAuthorised
 		}
-		return errors.Wrap(err, "QueryByID:db")
+		return usr, errors.Wrap(err, "CheckAuth:db")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(password)); err != nil {
-		return auth.ErrNotAuthorised
+		return User{}, auth.ErrNotAuthorised
 	}
 
-	return nil
+	return usr, nil
 }

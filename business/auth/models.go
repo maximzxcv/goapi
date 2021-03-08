@@ -27,10 +27,12 @@ type Access struct {
 type ApiClaim struct {
 	jwt.StandardClaims
 	Username string
+	UserId   string
 }
 
-func NewClaim(username string) ApiClaim {
+func NewClaim(uid string, username string) ApiClaim {
 	return ApiClaim{
+		UserId:   uid,
 		Username: username,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour * 2).Unix(),

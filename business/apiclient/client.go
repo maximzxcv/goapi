@@ -13,17 +13,34 @@ import (
 // Client - Http client for goapi
 type Client struct {
 	api     http.Handler
-	authStr string
+	authStr string 
 }
 
 // BuildClient is constructor for Client
 func BuildClient(api http.Handler) (Client, error) {
-
 	c := Client{
 		api: api,
 	}
 
 	return c, nil
+}
+
+// Login user to use client
+func (client *Client) Login(username string, password string) error {
+	login := auth.Login{
+		Username: username,
+		Password: password,
+	}
+
+	var access auth.Access
+	_, err := client.call(http.MethodPost, "/login", false, &login, &access)
+	if err != nil {
+		return err
+	}
+
+	client.authStr = "Bearer " + access.Token
+
+	return nil
 }
 
 // Post ....
@@ -49,24 +66,6 @@ func (client *Client) Delete(target string) (int, error) {
 // UnauthorizedCall ...
 func (client *Client) UnauthorizedCall(method, target string, in interface{}, out interface{}) (int, error) {
 	return client.call(method, target, false, in, out)
-}
-
-// Login user to use client
-func (client *Client) Login(username string, password string) error {
-	login := auth.Login{
-		Username: username,
-		Password: password,
-	}
-
-	var access auth.Access
-	_, err := client.call(http.MethodPost, "/login", false, &login, &access)
-	if err != nil {
-		return err
-	}
-
-	client.authStr = "Bearer " + access.Token
-
-	return nil
 }
 
 func (client *Client) call(method, target string, isAuth bool, in interface{}, out interface{}) (int, error) {

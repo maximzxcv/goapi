@@ -1,4 +1,4 @@
-package ttesting
+package testing
 
 import (
 	"fmt"

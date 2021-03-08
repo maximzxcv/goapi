@@ -1,12 +1,12 @@
-package handlers
+package integration
 
 import (
 	"fmt"
-	"goapi/app/api/middle"
+	"goapi/app/api/handlers"
 	"goapi/business/apiclient"
 	"goapi/business/auth"
 	"goapi/business/data/user"
-	"goapi/ttesting"
+	testEnv "goapi/testing"
 	"log"
 	"net/http"
 	"sync"
@@ -19,14 +19,14 @@ type userTests struct {
 }
 
 func TestUser(t *testing.T) {
-	tunit, err := ttesting.NewUnit()
+	tunit, err := testEnv.NewUnit()
 	if err != nil {
 		log.Fatalf("Failed to run test: %s", err)
 	}
 
 	t.Cleanup(tunit.Teardown)
 
-	app := API(tunit.Db, middle.LoggMiddle())
+	app := handlers.API(tunit.Db) //, middle.LoggMiddle())
 	client, err := apiclient.BuildClient(app)
 
 	if err != nil {
@@ -81,19 +81,19 @@ func (utests *userTests) postUser201(t *testing.T) user.User {
 	httpCode, err := utests.client.Post("/users", &cusr, &outusr)
 
 	if err != nil {
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	}
 
 	expected := http.StatusCreated
 	switch {
 	case httpCode != expected:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
+		t.Error(testEnv.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
 	case err != nil:
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	case outusr.Name != cusr.Name:
-		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", cusr.Name, outusr.Name))
+		t.Error(testEnv.FailedLog(testGoalLog, "user.Name", cusr.Name, outusr.Name))
 	default:
-		t.Log(ttesting.SuccessLog(testGoalLog))
+		t.Log(testEnv.SuccessLog(testGoalLog))
 	}
 
 	return outusr
@@ -108,19 +108,19 @@ func (utests *userTests) getUser200(t *testing.T, usr user.User) {
 	httpCode, err := utests.client.Get("/users/"+usr.ID, &outusr)
 
 	if err != nil {
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	}
 
 	expected := http.StatusOK
 	switch {
 	case httpCode != expected:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
+		t.Error(testEnv.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
 	case err != nil:
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	case outusr.Name != usr.Name:
-		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", usr.Name, outusr.Name))
+		t.Error(testEnv.FailedLog(testGoalLog, "user.Name", usr.Name, outusr.Name))
 	default:
-		t.Log(ttesting.SuccessLog(testGoalLog))
+		t.Log(testEnv.SuccessLog(testGoalLog))
 	}
 }
 
@@ -136,12 +136,12 @@ func (utests *userTests) putUsers200(t *testing.T, uid string) {
 
 	httpCode, err := utests.client.Put("/users/"+uid, &inusr, nil)
 	if err != nil {
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	}
 
 	expected := http.StatusOK
 	if httpCode != expected {
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
+		t.Error(testEnv.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
 	}
 
 	var outusr user.User
@@ -149,11 +149,11 @@ func (utests *userTests) putUsers200(t *testing.T, uid string) {
 
 	switch {
 	case err != nil:
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	case inusr.Name != outusr.Name:
-		t.Error(ttesting.FailedLog(testGoalLog, "user.Name", inusr.Name, outusr.Name))
+		t.Error(testEnv.FailedLog(testGoalLog, "user.Name", inusr.Name, outusr.Name))
 	default:
-		t.Log(ttesting.SuccessLog(testGoalLog))
+		t.Log(testEnv.SuccessLog(testGoalLog))
 	}
 }
 
@@ -163,12 +163,12 @@ func (utests *userTests) deleteUsers204(t *testing.T, uid string) {
 
 	httpCode, err := utests.client.Delete("/users/" + uid)
 	if err != nil {
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	}
 
 	expected := http.StatusNoContent
 	if httpCode != expected {
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
+		t.Error(testEnv.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
 	}
 
 	httpCode, _ = utests.client.Get("/users/"+uid, nil)
@@ -176,9 +176,9 @@ func (utests *userTests) deleteUsers204(t *testing.T, uid string) {
 	expected = http.StatusNotFound
 	switch {
 	case httpCode != expected:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
+		t.Error(testEnv.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
 	default:
-		t.Log(ttesting.SuccessLog(testGoalLog))
+		t.Log(testEnv.SuccessLog(testGoalLog))
 	}
 }
 
@@ -220,12 +220,12 @@ func (utests *userTests) getUsersList200(t *testing.T) {
 	expected := http.StatusOK
 	switch {
 	case httpCode != expected:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
+		t.Error(testEnv.FailedLog(testGoalLog, "httpStatus", expected, httpCode))
 	case err != nil:
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	case len(outusrs) != uamount+1:
-		t.Error(ttesting.FailedLog(testGoalLog, "Amount of users", uamount+1, len(outusrs)))
+		t.Error(testEnv.FailedLog(testGoalLog, "Amount of users", uamount+1, len(outusrs)))
 	default:
-		t.Log(ttesting.SuccessLog(testGoalLog))
+		t.Log(testEnv.SuccessLog(testGoalLog))
 	}
 }

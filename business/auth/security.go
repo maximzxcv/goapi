@@ -12,6 +12,7 @@ var (
 	salt = "8dhoer8gjodfger4"
 )
 
+// SignAccess creates access token
 func (claim *ApiClaim) SignAccess() (*Access, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
 	signedToken, err := token.SignedString([]byte(salt))
@@ -22,6 +23,7 @@ func (claim *ApiClaim) SignAccess() (*Access, error) {
 	return &Access{Token: signedToken}, nil
 }
 
+// ValidateAccess checks if auth token is valid
 func ValidateAccess(authString string) (*ApiClaim, error) {
 	parts := strings.Split(authString, " ")
 

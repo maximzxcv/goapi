@@ -2,7 +2,6 @@ package main
 
 import (
 	"goapi/app/api/handlers"
-	"goapi/app/api/middle"
 	"goapi/business/mid"
 	"log"
 	"net/http"
@@ -36,7 +35,7 @@ func main() {
 
 	api := http.Server{
 		Addr:    serverAddress,
-		Handler: handlers.API(db, middle.LoggMiddle()),
+		Handler: handlers.API(db), //, middle.LoggMiddle(), middle.CallMiddle()),
 	}
 
 	log.Printf("API is running on %v", serverAddress)

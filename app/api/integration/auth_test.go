@@ -1,12 +1,12 @@
-package handlers
+package integration
 
 import (
 	"bytes"
 	"encoding/json"
-	"goapi/app/api/middle"
+	"goapi/app/api/handlers"
 	"goapi/business/auth"
 	"goapi/business/data/user"
-	"goapi/ttesting"
+	testEnv "goapi/testing"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +18,7 @@ type authTests struct {
 }
 
 func TestAuth(t *testing.T) {
-	tunit, err := ttesting.NewUnit()
+	tunit, err := testEnv.NewUnit()
 	if err != nil {
 		log.Fatalf("Failed to run test: %s", err)
 	}
@@ -26,7 +26,7 @@ func TestAuth(t *testing.T) {
 	t.Cleanup(tunit.Teardown)
 
 	atests := authTests{
-		app: API(tunit.Db, middle.LoggMiddle()),
+		app: handlers.API(tunit.Db), //, middle.LoggMiddle()),
 	}
 
 	t.Log("Authentication functionality")
@@ -53,7 +53,7 @@ func (atests *authTests) postSingup201(t *testing.T) *auth.Signup {
 	}
 	body, err := json.Marshal(&signup)
 	if err != nil {
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	}
 
 	r := httptest.NewRequest(http.MethodPost, "/singup", bytes.NewBuffer(body))
@@ -62,9 +62,9 @@ func (atests *authTests) postSingup201(t *testing.T) *auth.Signup {
 
 	estatus := http.StatusCreated
 	if w.Code != estatus {
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+		t.Error(testEnv.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
 	} else {
-		t.Log(ttesting.SuccessLog(testGoalLog))
+		t.Log(testEnv.SuccessLog(testGoalLog))
 	}
 
 	return &signup
@@ -80,7 +80,7 @@ func (atests *authTests) postLogin401(t *testing.T) *auth.Access {
 	}
 	body, err := json.Marshal(&login)
 	if err != nil {
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	}
 
 	r := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
@@ -93,9 +93,9 @@ func (atests *authTests) postLogin401(t *testing.T) *auth.Access {
 	estatus := http.StatusUnauthorized
 	switch {
 	case w.Code != estatus:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+		t.Error(testEnv.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
 	default:
-		t.Log(ttesting.SuccessLog(testGoalLog))
+		t.Log(testEnv.SuccessLog(testGoalLog))
 	}
 
 	return &access
@@ -111,7 +111,7 @@ func (atests *authTests) postLogin200(t *testing.T, username string, password st
 	}
 	body, err := json.Marshal(&login)
 	if err != nil {
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	}
 
 	r := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
@@ -124,13 +124,13 @@ func (atests *authTests) postLogin200(t *testing.T, username string, password st
 	estatus := http.StatusOK
 	switch {
 	case w.Code != estatus:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+		t.Error(testEnv.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
 	case err != nil:
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	case len(access.Token) < 100:
-		t.Error(ttesting.FailedLog(testGoalLog, "access.Token", "len(access.Token)<100", len(access.Token)))
+		t.Error(testEnv.FailedLog(testGoalLog, "access.Token", "len(access.Token)<100", len(access.Token)))
 	default:
-		t.Log(ttesting.SuccessLog(testGoalLog))
+		t.Log(testEnv.SuccessLog(testGoalLog))
 	}
 
 	return &access
@@ -152,13 +152,13 @@ func (atests *authTests) getUsers200(t *testing.T, access *auth.Access) {
 	estatus := http.StatusOK
 	switch {
 	case w.Code != estatus:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+		t.Error(testEnv.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
 	case err != nil:
-		t.Error(ttesting.ErrorLog(testGoalLog, err))
+		t.Error(testEnv.ErrorLog(testGoalLog, err))
 	case len(rusrs) != uamount:
-		t.Error(ttesting.FailedLog(testGoalLog, "Number of Users", uamount, len(rusrs)))
+		t.Error(testEnv.FailedLog(testGoalLog, "Number of Users", uamount, len(rusrs)))
 	default:
-		t.Log(ttesting.SuccessLog(testGoalLog))
+		t.Log(testEnv.SuccessLog(testGoalLog))
 	}
 }
 
@@ -172,9 +172,9 @@ func (atests *authTests) getLogout200(t *testing.T, access *auth.Access) {
 
 	estatus := http.StatusOK
 	if w.Code != estatus {
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+		t.Error(testEnv.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
 	} else {
-		t.Log(ttesting.SuccessLog(testGoalLog))
+		t.Log(testEnv.SuccessLog(testGoalLog))
 	}
 }
 
@@ -192,8 +192,8 @@ func (atests *authTests) getUsers401(t *testing.T, access *auth.Access) {
 	estatus := http.StatusUnauthorized
 	switch {
 	case w.Code != estatus:
-		t.Error(ttesting.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
+		t.Error(testEnv.FailedLog(testGoalLog, "httpStatus", estatus, w.Code))
 	default:
-		t.Log(ttesting.SuccessLog(testGoalLog))
+		t.Log(testEnv.SuccessLog(testGoalLog))
 	}
 }

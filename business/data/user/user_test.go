@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 	"goapi/foundation/dbase"
-	"goapi/ttesting"
+	testEnv "goapi/testing"
 	"log"
 	"strconv"
 	"testing"
@@ -12,7 +12,7 @@ import (
 )
 
 func TestUser(t *testing.T) {
-	tunit, err := ttesting.NewUnit()
+	tunit, err := testEnv.NewUnit()
 	if err != nil {
 		log.Fatalf("Failed to run test: %s", err)
 	}
@@ -30,9 +30,9 @@ func TestUser(t *testing.T) {
 		}
 		var fusr User
 		if fusr, err = rep.Create(ctx, curs); err != nil {
-			t.Error(ttesting.ErrorLog(testGoalLog, err))
+			t.Error(testEnv.ErrorLog(testGoalLog, err))
 		} else {
-			t.Logf(ttesting.SuccessLog(testGoalLog))
+			t.Logf(testEnv.SuccessLog(testGoalLog))
 		}
 
 		// populate more users
@@ -44,12 +44,12 @@ func TestUser(t *testing.T) {
 		testGoalLog = "QueryByID: Should be able to query single user by Id."
 		usr, err := rep.QueryByID(ctx, fusr.ID)
 		if err != nil {
-			t.Error(ttesting.ErrorLog(testGoalLog, err))
+			t.Error(testEnv.ErrorLog(testGoalLog, err))
 		}
 		if usr.Name != "Name" {
-			t.Error(ttesting.FailedLog(testGoalLog, "Name", usr.Name, "Name"))
+			t.Error(testEnv.FailedLog(testGoalLog, "Name", usr.Name, "Name"))
 		} else {
-			t.Logf(ttesting.SuccessLog(testGoalLog))
+			t.Logf(testEnv.SuccessLog(testGoalLog))
 		}
 
 		testGoalLog = "Update: Should be able to update user by Id."
@@ -59,34 +59,34 @@ func TestUser(t *testing.T) {
 		uusr.Name = "updatedName"
 		usr, err = rep.Update(ctx, fusr.ID, uusr)
 		if err != nil {
-			t.Error(ttesting.ErrorLog(testGoalLog, err))
+			t.Error(testEnv.ErrorLog(testGoalLog, err))
 		}
 		if usr.Name != "updatedName" {
-			t.Error(ttesting.FailedLog(testGoalLog, "Name", usr.Name, "updatedName"))
+			t.Error(testEnv.FailedLog(testGoalLog, "Name", usr.Name, "updatedName"))
 		} else {
-			t.Logf(ttesting.SuccessLog(testGoalLog))
+			t.Logf(testEnv.SuccessLog(testGoalLog))
 		}
 
 		testGoalLog = "Query: Should be able to query multipleusers."
 		usrs, err := rep.Query(ctx)
 		if err != nil {
-			t.Error(ttesting.ErrorLog(testGoalLog, err))
+			t.Error(testEnv.ErrorLog(testGoalLog, err))
 		}
 		if len(usrs) != 5 {
-			t.Error(ttesting.FailedLog(testGoalLog, "len(usrs)", 5, len(usrs)))
+			t.Error(testEnv.FailedLog(testGoalLog, "len(usrs)", 5, len(usrs)))
 		} else {
-			t.Logf(ttesting.SuccessLog(testGoalLog))
+			t.Logf(testEnv.SuccessLog(testGoalLog))
 		}
 
 		testGoalLog = "Delete: Should be able to delete user."
 		if err := rep.Delete(ctx, fusr.ID); err != nil {
-			t.Error(ttesting.ErrorLog(testGoalLog, err))
+			t.Error(testEnv.ErrorLog(testGoalLog, err))
 		}
 		_, err = rep.QueryByID(ctx, fusr.ID)
 		if errors.Cause(err) != dbase.ErrNotExist {
-			t.Error(ttesting.ErrorLog(testGoalLog, err))
+			t.Error(testEnv.ErrorLog(testGoalLog, err))
 		} else {
-			t.Logf(ttesting.SuccessLog(testGoalLog))
+			t.Logf(testEnv.SuccessLog(testGoalLog))
 		}
 	}
 }

@@ -57,7 +57,8 @@ func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) *ErrorRespo
 		return &ErrorResponse{err, 500}
 	}
 
-	if err := ah.urep.CheckAuth(ctx, login.Username, login.Password); err != nil {
+	usr, err := ah.urep.CheckAuth(ctx, login.Username, login.Password)
+	if err != nil {
 		switch errors.Cause(err) {
 		case auth.ErrNotAuthorised:
 			w.WriteHeader(http.StatusUnauthorized)
@@ -67,7 +68,7 @@ func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) *ErrorRespo
 		}
 	}
 
-	claim := auth.NewClaim(login.Username)
+	claim := auth.NewClaim(usr.ID, usr.Name)
 	access, err := claim.SignAccess()
 	if err != nil {
 		return &ErrorResponse{err, 500}

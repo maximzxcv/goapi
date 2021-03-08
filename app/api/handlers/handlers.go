@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"goapi/app/api/middle"
+	"goapi/business/data/call"
 	"goapi/business/data/user"
 	"log"
 	"net/http"
@@ -20,10 +21,15 @@ type ErrorResponse struct {
 func API(db *sqlx.DB, mw ...middle.Middleware) http.Handler {
 	router := apiMux{
 		ContextMux: httptreemux.NewContextMux(),
-		mw:         mw,
+		mware:      make([]middle.Middleware, 2), //  mw,
 	}
 
 	urep := user.NewRepository(db)
+	crep := call.NewRepository(db)
+
+	//	Handler: handlers.API(db, middle.LoggMiddle(), middle.CallMiddle()),
+	router.mware[0] = middle.LoggMiddle()
+	router.mware[1] = middle.CallMiddle(crep)
 
 	uh := NewUserHandler(urep)
 	router.MHandler(http.MethodGet, "/users/:id", appHandler(uh.GetUserByID), middle.AuthMiddle())
@@ -37,17 +43,20 @@ func API(db *sqlx.DB, mw ...middle.Middleware) http.Handler {
 	router.MHandler(http.MethodPost, "/login", appHandler(ah.Login), nil)
 	router.MHandler(http.MethodGet, "/logout", appHandler(ah.Logout), nil)
 
+	ch := NewCallHandler(crep)
+	router.MHandler(http.MethodGet, "/calls", appHandler(ch.GetCalls), middle.AuthMiddle())
+
 	return router
 }
 
 type apiMux struct {
 	*httptreemux.ContextMux
-	mw []middle.Middleware
+	mware []middle.Middleware
 }
 
 // MHandler allows to run middleware
 func (cg *apiMux) MHandler(method, path string, handler http.Handler, m ...middle.Middleware) {
-	h := wrapMiddleware(cg.mw, handler)
+	h := wrapMiddleware(cg.mware, handler)
 	h = wrapMiddleware(m, h)
 	cg.Handler(method, path, h)
 }
@@ -69,6 +78,5 @@ func wrapMiddleware(mw []middle.Middleware, handler http.Handler) http.Handler {
 			handler = h(handler)
 		}
 	}
-
 	return handler
 }
