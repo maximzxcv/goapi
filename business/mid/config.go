@@ -57,8 +57,7 @@ func LoadConfig(path string) error { //} (*AppConfig, error) {
 	err := viper.ReadInConfig()
 
 	if err != nil {
-		//return nil, errors.Wrap(err, "Error reading configuration")
-		return errors.Wrap(err, "Error reading configuration")
+		return errors.Wrap(err, fmt.Sprintf("Error reading configuration [path:%v]", path))
 	}
 
 	var appConfig AppConfig

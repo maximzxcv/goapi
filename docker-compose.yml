@@ -1,0 +1,23 @@
+version: '3'
+services:
+  db:
+    network_mode: bridge
+    image: postgres
+    environment:
+      POSTGRES_DB: goapi
+      POSTGRES_USER: goapidbuser
+      POSTGRES_PASSWORD: 0819
+    ports:
+      - 5432:5432 
+  backend:
+    network_mode: bridge
+    build: .
+    command: ["go", "build", "main.go"]
+    volumes:
+      - .:/go/goapi/app/api 
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db 
+    links:
+      - db   

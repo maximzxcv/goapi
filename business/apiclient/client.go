@@ -13,7 +13,7 @@ import (
 // Client - Http client for goapi
 type Client struct {
 	api     http.Handler
-	authStr string 
+	authStr string
 }
 
 // BuildClient is constructor for Client
@@ -69,6 +69,7 @@ func (client *Client) UnauthorizedCall(method, target string, in interface{}, ou
 }
 
 func (client *Client) call(method, target string, isAuth bool, in interface{}, out interface{}) (int, error) {
+
 	r := &http.Request{}
 	if in == nil {
 		r = httptest.NewRequest(method, target, nil)
@@ -79,9 +80,16 @@ func (client *Client) call(method, target string, isAuth bool, in interface{}, o
 		}
 		r = httptest.NewRequest(method, target, bytes.NewBuffer(body))
 	}
+
+	// ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	// defer cancel()
+
+	//r = r.WithContext(ctx)
+
 	if isAuth {
 		r.Header.Add("Authorization", client.authStr)
 	}
+
 	w := httptest.NewRecorder()
 	client.api.ServeHTTP(w, r)
 

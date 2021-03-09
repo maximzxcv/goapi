@@ -16,7 +16,7 @@ const (
 )
 
 func main() {
-	if err := mid.LoadConfig("."); err != nil {
+	if err := mid.LoadConfig("./app/api"); err != nil {
 		log.Fatalf("Could configfile: %s", err)
 	}
 	dbConfig, _ := mid.GetDbConfig()

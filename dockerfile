@@ -7,13 +7,16 @@ WORKDIR ${APP_HOME}
 
 COPY go.mod .
 COPY go.sum .
-COPY bal bal
-COPY cmd cmd
-
+COPY app app
+COPY testing testing  
+COPY business business
+COPY foundation foundation  
+COPY testing testing  
+ 
  RUN go mod download 
- RUN go mod vendor
+ RUN go mod vendor 
 
- RUN go build ./cmd/api  download 
+ RUN go build ./app/api/   
 
 EXPOSE 8080
 

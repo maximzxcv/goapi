@@ -33,7 +33,7 @@ func (runner *DockerRunner) Start() error {
 
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "postgres",
-		Tag:        "11",
+		Tag:        "latest",
 		Env: []string{
 			"POSTGRES_USER=" + runner.config.User,
 			"POSTGRES_PASSWORD=" + runner.config.Password,
