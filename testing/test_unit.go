@@ -1,23 +1,30 @@
 package testing
 
 import (
+	"context"
 	"fmt"
+	"goapi/app/api/handlers"
 	"goapi/business/mid"
 	"log"
+	"net/http"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
 const (
-	Success = "\u2713"
-	Failed  = "\u2717"
+	Success       = "\u2713"
+	Failed        = "\u2717"
+	ServerAddress = "127.0.0.1:8080"
 )
 
 // TestUnit is an environment to run test
 type TestUnit struct {
-	dRunner *DockerRunner
-	Db      *sqlx.DB
+	dRunner       *DockerRunner
+	Db            *sqlx.DB
+	ServerAddress string
+	api           *http.Server
+	stopAPI       func()
 }
 
 // NewUnit constructor
@@ -40,17 +47,53 @@ func NewUnit() (*TestUnit, error) {
 		return nil, errors.Wrap(err, "Could not create DB schema on docker: %s")
 	}
 
+	api := http.Server{
+		Addr:    ServerAddress,
+		Handler: handlers.API(db), //, middle.LoggMiddle(), middle.CallMiddle()),
+	}
+
+	go func() {
+
+	}()
+
 	return &TestUnit{
-		dRunner: dRunner,
-		Db:      db,
+		dRunner:       dRunner,
+		Db:            db,
+		ServerAddress: ServerAddress,
+		api:           &api,
 	}, nil
 
+}
+
+func (tunit *TestUnit) RunApi(ctx context.Context) { //} (wg *sync.WaitGroup) {
+	ctx, cancel := context.WithCancel(ctx)
+	tunit.stopAPI = cancel
+	go func() {
+		select {
+		case <-ctx.Done():
+			log.Printf("API is stopping on %v", ServerAddress)
+			if err := tunit.api.Shutdown(context.Background()); err != nil {
+				log.Fatalf("Failed to stop API server: %s", err)
+			}
+		}
+	}()
+	go func() {
+		log.Printf("API is running on %v", ServerAddress)
+		if err := tunit.api.ListenAndServe(); err != nil {
+			if errors.Cause(err) != http.ErrServerClosed {
+				log.Fatal(err)
+			}
+		}
+	}()
 }
 
 // Teardown remove container
 func (tunit *TestUnit) Teardown() {
 	if err := tunit.dRunner.Stop(); err != nil {
 		log.Fatalf("Failed to stop container: %s", err)
+	}
+	if tunit.stopAPI != nil {
+		tunit.stopAPI()
 	}
 }
 

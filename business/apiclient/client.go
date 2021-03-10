@@ -102,3 +102,38 @@ func (client *Client) call(method, target string, isAuth bool, in interface{}, o
 
 	return w.Code, err
 }
+
+// func (client *Client) call(method, target string, isAuth bool, in interface{}, out interface{}) (int, error) {
+
+// 	r := &http.Request{}
+// 	if in == nil {
+// 		r = httptest.NewRequest(method, target, nil)
+// 	} else {
+// 		body, err := json.Marshal(&in)
+// 		if err != nil {
+// 			return 0, errors.WithStack(err)
+// 		}
+// 		r = httptest.NewRequest(method, target, bytes.NewBuffer(body))
+// 	}
+
+// 	// ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+// 	// defer cancel()
+
+// 	//r = r.WithContext(ctx)
+
+// 	if isAuth {
+// 		r.Header.Add("Authorization", client.authStr)
+// 	}
+
+// 	w := httptest.NewRecorder()
+// 	client.api.ServeHTTP(w, r)
+
+// 	if out == nil {
+// 		return w.Code, nil
+// 	}
+
+// 	err := json.NewDecoder(w.Body).Decode(&out)
+// 	defer r.Body.Close()
+
+// 	return w.Code, err
+// }

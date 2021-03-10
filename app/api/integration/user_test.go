@@ -1,8 +1,8 @@
 package integration
 
 import (
+	"context"
 	"fmt"
-	"goapi/app/api/handlers"
 	"goapi/business/apiclient"
 	"goapi/business/auth"
 	"goapi/business/data/user"
@@ -14,11 +14,11 @@ import (
 )
 
 type userTests struct {
-	app    http.Handler
-	client apiclient.Client
+	client *apiclient.CleverClient
 }
 
 func TestUser(t *testing.T) {
+	ctx := context.Background()
 	tunit, err := testEnv.NewUnit()
 	if err != nil {
 		log.Fatalf("Failed to run test: %s", err)
@@ -26,15 +26,11 @@ func TestUser(t *testing.T) {
 
 	t.Cleanup(tunit.Teardown)
 
-	app := handlers.API(tunit.Db) //, middle.LoggMiddle())
-	client, err := apiclient.BuildClient(app)
+	tunit.RunApi(ctx)
 
-	if err != nil {
-		log.Fatalf("Failed to run test: %s", err)
-	}
+	client := apiclient.BuildClever(tunit.ServerAddress)
 
 	utests := userTests{
-		app,
 		client,
 	}
 
