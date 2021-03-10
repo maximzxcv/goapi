@@ -201,7 +201,7 @@ func (utests *userTests) getUsersList200(t *testing.T) {
 
 			_, err := utests.client.Post("/users", cusr, nil)
 			if err != nil {
-				t.Errorf("concur: %v", err)
+				t.Errorf("getUsersList200: %v", err)
 			}
 			wg.Done()
 		}()

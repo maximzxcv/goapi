@@ -6,6 +6,7 @@ import (
 	"goapi/business/data/call"
 	"goapi/foundation/dbase"
 	"net/http"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -40,7 +41,7 @@ func (ch *CallHandler) GetCalls(w http.ResponseWriter, r *http.Request) *ErrorRe
 			return &ErrorResponse{err, 500}
 		}
 	}
-
+	time.Sleep(300 * time.Millisecond)
 	out, err := json.Marshal(cls)
 	if err != nil {
 		return &ErrorResponse{err, 500}
